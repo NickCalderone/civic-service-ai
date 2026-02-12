@@ -53,6 +53,9 @@ npm run db:generate
 # Apply migrations to the local database
 npm run db:migrate
 
+# Seed sample data (idempotent)
+npm run db:seed
+
 # Open Drizzle Studio
 npm run db:studio
 ```

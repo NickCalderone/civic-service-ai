@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:check": "node scripts/db-healthcheck.mjs",
+    "db:seed": "node scripts/db-seed.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
