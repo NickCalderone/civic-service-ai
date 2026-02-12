@@ -18,6 +18,12 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Local Verification
 
+Create your local env file first:
+
+```bash
+cp .env.example .env.local
+```
+
 Use these commands to confirm local services are healthy:
 
 ```bash
