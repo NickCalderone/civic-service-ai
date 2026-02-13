@@ -9,11 +9,14 @@
     "lint": "eslint",
     "db:check": "node scripts/db-healthcheck.mjs",
     "db:seed": "node scripts/db-seed.mjs",
+    "db:ingest:civic": "node scripts/civic-ingest.mjs",
+    "db:embed:civic": "node scripts/civic-embed.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.1",
     "next": "16.1.6",
     "pg": "^8.18.0",

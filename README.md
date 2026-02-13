@@ -56,6 +56,12 @@ npm run db:migrate
 # Seed sample data (idempotent)
 npm run db:seed
 
+# Ingest civic code/policy documents into civic_documents
+npm run db:ingest:civic
+
+# Backfill embeddings for existing rows (requires OPENAI_API_KEY)
+npm run db:embed:civic
+
 # Open Drizzle Studio
 npm run db:studio
 ```
@@ -70,6 +76,70 @@ Key files:
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Civic Service AI MVP
+
+The app now includes a first-pass civic assistant flow:
+
+- Ask a local policy/code question from the home page.
+- Receive a grounded answer with confidence level and source citations.
+- See a legal disclaimer for safe use.
+
+### API
+
+`POST /api/ask`
+
+Request body:
+
+```json
+{
+	"question": "Do I need a permit to remodel my kitchen?"
+}
+```
+
+Response shape:
+
+```json
+{
+	"answer": "...",
+	"confidence": "low | medium | high",
+	"citations": [
+		{
+			"sourceTitle": "...",
+			"sourceUrl": "...",
+			"section": "...",
+			"excerpt": "..."
+		}
+	],
+	"disclaimer": "AI guidance only. This is not legal advice."
+}
+```
+
+Current retrieval is Postgres-backed through `civic_documents` and ranked in `lib/civic-knowledge.ts`.
+The ingest source dataset is `data/civic-documents.json` and is loaded into Postgres via `scripts/civic-ingest.mjs`.
+When `OPENAI_API_KEY` is configured, embeddings are generated and semantic top-k retrieval is used via pgvector distance.
+If embeddings are not available, the service gracefully falls back to keyword scoring.
+
+Mode indicator shown in the UI:
+
+- `Semantic`: embeddings + pgvector similarity were used.
+- `Fallback`: keyword scoring was used because semantic retrieval was unavailable.
+
+### Resume Highlights
+
+- Built a civic policy assistant with a Next.js frontend and typed API route for grounded Q&A.
+- Implemented RAG retrieval over Postgres with pgvector, including semantic top-k search and fallback keyword ranking.
+- Designed ingestion and embedding pipelines (`db:ingest:civic`, `db:embed:civic`) with idempotent upserts.
+- Added source citations, confidence, and retrieval-mode transparency (`Semantic` vs `Fallback`) for safer AI UX.
+- Created reproducible local setup with Dockerized Postgres, Drizzle migrations, and lint-verified code quality.
+
+## Secrets Hygiene
+
+- Keep real secrets only in `.env.local` and never commit that file.
+- Use `.env.example` as the template for required variables with blank placeholders.
+- Do not paste API keys in terminal commands that may be shared in screenshots, logs, or chat.
+- If a key is exposed, rotate it immediately in the provider dashboard and update `.env.local`.
+- Prefer redacted values (`sk-***`) when discussing keys or troubleshooting with others.
 
 ## Learn More
 

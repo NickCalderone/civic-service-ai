@@ -8,6 +8,20 @@
       "when": 1770920347598,
       "tag": "0000_bright_demogoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770938689123,
+      "tag": "0001_funny_shiver_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770939123548,
+      "tag": "0002_large_hawkeye",
+      "breakpoints": true
     }
   ]
 }

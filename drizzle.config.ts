@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import { defineConfig } from "drizzle-kit";
+import "dotenv/config";
 
 const require = createRequire(import.meta.url);
 const { loadEnvConfig } = require("@next/env");

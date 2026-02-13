@@ -1,0 +1,42 @@
+[
+  {
+    "id": "permit-accessory-unit",
+    "sourceTitle": "Springfield Municipal Code",
+    "sourceUrl": "https://example.gov/code/zoning/accessory-units",
+    "section": "§ 18.42.040 Accessory Dwelling Units",
+    "tags": ["adu", "zoning", "permit", "residential"],
+    "content": "Accessory dwelling units are permitted in single-family residential zones after zoning clearance. Maximum size is 800 square feet or 40% of primary dwelling floor area, whichever is less."
+  },
+  {
+    "id": "permit-remodel-threshold",
+    "sourceTitle": "Springfield Building Division Guide",
+    "sourceUrl": "https://example.gov/building/permits/residential-remodel",
+    "section": "Residential Remodel Permits",
+    "tags": ["permit", "remodel", "construction"],
+    "content": "A building permit is required for structural work, electrical rewiring, new plumbing lines, and any project valued above $5,000. Cosmetic painting and finish replacement do not require a permit."
+  },
+  {
+    "id": "tenant-notice-rent-increase",
+    "sourceTitle": "County Tenant Protection Ordinance",
+    "sourceUrl": "https://example.gov/housing/tenant-protection",
+    "section": "§ 9.14 Notice of Rent Increase",
+    "tags": ["tenant", "rent", "notice", "housing"],
+    "content": "Landlords must provide written notice at least 30 days before a rent increase of up to 10%. Increases greater than 10% require at least 90 days written notice."
+  },
+  {
+    "id": "business-home-occupation",
+    "sourceTitle": "Springfield Zoning Handbook",
+    "sourceUrl": "https://example.gov/zoning/home-business",
+    "section": "Home Occupation Standards",
+    "tags": ["business", "license", "home occupation", "zoning"],
+    "content": "Home occupation businesses are allowed with a business license if customer visits are limited to 8 per day and no exterior storage or signage is installed."
+  },
+  {
+    "id": "sidewalk-obstruction",
+    "sourceTitle": "Public Works Right-of-Way Rules",
+    "sourceUrl": "https://example.gov/public-works/right-of-way",
+    "section": "Sidewalk Use and Encroachments",
+    "tags": ["sidewalk", "public works", "encroachment", "permit"],
+    "content": "Any placement of dumpsters, scaffolding, or storage containers in the public right-of-way requires a temporary encroachment permit issued by Public Works before placement."
+  }
+]
