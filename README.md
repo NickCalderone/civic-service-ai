@@ -59,6 +59,14 @@ npm run db:seed
 # Ingest civic code/policy documents into civic_documents
 npm run db:ingest:civic
 
+# Convert a PDF into data/civic-documents.json entries
+npm run data:pdf -- ./docs/your-document.pdf --title "Your Document Title" --url "https://example.gov/your-document"
+# Add --min-chars 180 to skip short header/footer fragments
+
+# Convert a PDF with page-aware sections (e.g., "Page 12 - Chunk 2")
+npm run data:pdf:paged -- ./docs/your-document.pdf --title "Your Document Title" --url "https://example.gov/your-document"
+# Add --min-chars 180 to keep only substantive chunks
+
 # Backfill embeddings for existing rows (requires OPENAI_API_KEY)
 npm run db:embed:civic
 
@@ -117,8 +125,19 @@ Response shape:
 
 Current retrieval is Postgres-backed through `civic_documents` and ranked in `lib/civic-knowledge.ts`.
 The ingest source dataset is `data/civic-documents.json` and is loaded into Postgres via `scripts/civic-ingest.mjs`.
+You can generate dataset entries from a PDF with `scripts/pdf-to-civic-json.mjs` (or `npm run data:pdf -- ...`) and then ingest them.
+For citation traceability, use `scripts/pdf-to-civic-json-paged.mjs` (or `npm run data:pdf:paged -- ...`) to include page numbers in each record section.
 When `OPENAI_API_KEY` is configured, embeddings are generated and semantic top-k retrieval is used via pgvector distance.
 If embeddings are not available, the service gracefully falls back to keyword scoring.
+
+The assistant now uses a first-pass hybrid pipeline:
+
+- Local retrieval from `civic_documents` (semantic or keyword fallback)
+- Optional web retrieval from strict URL-prefix allowlist (`WEB_ALLOWLIST_URL_PREFIXES`, default `https://codes.iccsafe.org/content/IBC2015`)
+- Primary-source ranking boost via `WEB_PRIMARY_SOURCES` (default `codes.iccsafe.org`)
+- Grounded answer synthesis with `CHAT_MODEL` (default `gpt-4.1-mini`) and citation IDs
+
+If generation is unavailable, the service falls back to concatenated retrieved passages.
 
 Mode indicator shown in the UI:
 

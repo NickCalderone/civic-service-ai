@@ -11,6 +11,8 @@
     "db:seed": "node scripts/db-seed.mjs",
     "db:ingest:civic": "node scripts/civic-ingest.mjs",
     "db:embed:civic": "node scripts/civic-embed.mjs",
+    "data:pdf": "node scripts/pdf-to-civic-json.mjs",
+    "data:pdf:paged": "node scripts/pdf-to-civic-json-paged.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
@@ -19,6 +21,7 @@
     "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.1",
     "next": "16.1.6",
+    "pdf-parse": "^1.1.1",
     "pg": "^8.18.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
@@ -34,5 +37,8 @@
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": "20.11.x"
   }
 }
