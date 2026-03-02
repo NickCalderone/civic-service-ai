@@ -1,18 +1,25 @@
 import { db, pool } from "@/db";
 import { civicDocuments } from "@/db/schema";
+import {
+  generateGroundedAnswer,
+  type GroundingChunk,
+} from "@/lib/answer-generation";
 import { getTextEmbedding, toVectorLiteral } from "@/lib/embeddings";
+import { retrieveWebGrounding } from "@/lib/web-retrieval";
 
 export type CivicCitation = {
   sourceTitle: string;
   sourceUrl: string;
   section: string;
   excerpt: string;
+  sourceType: "local" | "web";
 };
 
 export type AskResult = {
   answer: string;
   confidence: "low" | "medium" | "high";
   retrievalMode: "semantic" | "keyword-fallback";
+  webSourcesUsed: boolean;
   citations: CivicCitation[];
 };
 
@@ -28,6 +35,12 @@ type CivicSection = {
 type RankedSection = {
   section: CivicSection;
   score: number;
+};
+
+type LocalRetrieval = {
+  chunks: GroundingChunk[];
+  confidence: AskResult["confidence"];
+  retrievalMode: AskResult["retrievalMode"];
 };
 
 const STOP_WORDS = new Set([
@@ -199,54 +212,132 @@ const rankWithVectors = async (
   }
 };
 
-export const askCivicKnowledge = async (question: string): Promise<AskResult> => {
-  const sections = await loadCivicSections();
+const toCitation = (chunk: GroundingChunk): CivicCitation => ({
+  sourceTitle: chunk.sourceTitle,
+  sourceUrl: chunk.sourceUrl,
+  section: chunk.section,
+  excerpt: chunk.content,
+  sourceType: chunk.sourceType,
+});
+
+const toLocalChunk = (
+  section: CivicSection,
+  id: string,
+): GroundingChunk => ({
+  id,
+  sourceType: "local",
+  sourceTitle: section.sourceTitle,
+  sourceUrl: section.sourceUrl,
+  section: section.section,
+  content: section.content,
+});
+
+const retrieveLocalGrounding = async (
+  question: string,
+): Promise<LocalRetrieval> => {
   const vectorRanked = await rankWithVectors(question);
 
   if (vectorRanked && vectorRanked.length > 0) {
     const bestDistance = vectorRanked[0]?.distance ?? 1;
 
     return {
-      answer: vectorRanked
-        .map(({ section }) => `${section.section}: ${section.content}`)
-        .join(" "),
+      chunks: vectorRanked.map(({ section }, index) =>
+        toLocalChunk(section, `local-semantic-${index + 1}`),
+      ),
       confidence: confidenceFromDistance(bestDistance),
       retrievalMode: "semantic",
-      citations: vectorRanked.map(({ section }) => ({
-        sourceTitle: section.sourceTitle,
-        sourceUrl: section.sourceUrl,
-        section: section.section,
-        excerpt: section.content,
-      })),
     };
   }
 
+  const sections = await loadCivicSections();
   const ranked = rankWithKeywords(sections, question);
 
   if (ranked.length === 0) {
     return {
-      answer:
-        "I could not find a strong local-code match in the current database. Try adding details like permit type, project scope, tenant issue, or business type.",
+      chunks: [],
       confidence: "low",
       retrievalMode: "keyword-fallback",
-      citations: [],
     };
   }
 
   const combinedScore = ranked.reduce((total, entry) => total + entry.score, 0);
-  const answer = ranked
-    .map(({ section }) => `${section.section}: ${section.content}`)
-    .join(" ");
 
   return {
-    answer,
+    chunks: ranked.map(({ section }, index) =>
+      toLocalChunk(section, `local-keyword-${index + 1}`),
+    ),
     confidence: confidenceFromScore(combinedScore),
     retrievalMode: "keyword-fallback",
-    citations: ranked.map(({ section }) => ({
-      sourceTitle: section.sourceTitle,
-      sourceUrl: section.sourceUrl,
-      section: section.section,
-      excerpt: section.content,
-    })),
+  };
+};
+
+export const askCivicKnowledge = async (question: string): Promise<AskResult> => {
+  const [local, webChunks] = await Promise.all([
+    retrieveLocalGrounding(question),
+    retrieveWebGrounding(question),
+  ]);
+
+  const webSourcesUsed = webChunks.length > 0;
+
+  const allChunks = [...local.chunks, ...webChunks].slice(0, 6);
+
+  if (allChunks.length === 0) {
+    return {
+      answer:
+        "I could not find a strong local-code or approved web-source match. Try adding details like permit type, project scope, tenant issue, or business type.",
+      confidence: "low",
+      retrievalMode: "keyword-fallback",
+      webSourcesUsed,
+      citations: [],
+    };
+  }
+
+  const generated = await generateGroundedAnswer(question, allChunks);
+
+  if (!generated) {
+    return {
+      answer: allChunks
+        .map((chunk) => `${chunk.section}: ${chunk.content}`)
+        .join(" "),
+      confidence: local.confidence,
+      retrievalMode: local.retrievalMode,
+      webSourcesUsed,
+      citations: allChunks.map(toCitation),
+    };
+  }
+
+  const chunkById = new Map(allChunks.map((chunk) => [chunk.id, chunk]));
+
+  const generatedCitations = generated.citationIds
+    .map((id) => chunkById.get(id))
+    .filter((chunk): chunk is GroundingChunk => chunk !== undefined)
+    .map(toCitation);
+
+  const hasWebCitation = generatedCitations.some((citation) => citation.sourceType === "web");
+
+  const citations = (() => {
+    if (generatedCitations.length === 0) {
+      return allChunks.map(toCitation);
+    }
+
+    if (!webSourcesUsed || hasWebCitation) {
+      return generatedCitations;
+    }
+
+    const firstWebChunk = webChunks[0];
+
+    if (!firstWebChunk) {
+      return generatedCitations;
+    }
+
+    return [...generatedCitations, toCitation(firstWebChunk)];
+  })();
+
+  return {
+    answer: generated.answer,
+    confidence: generated.confidence,
+    retrievalMode: local.retrievalMode,
+    webSourcesUsed,
+    citations,
   };
 };
