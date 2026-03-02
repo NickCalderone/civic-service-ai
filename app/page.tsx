@@ -7,12 +7,14 @@ type Citation = {
   sourceUrl: string;
   section: string;
   excerpt: string;
+  sourceType: "local" | "web";
 };
 
 type AskResponse = {
   answer: string;
   confidence: "low" | "medium" | "high";
   retrievalMode: "semantic" | "keyword-fallback";
+  webSourcesUsed: boolean;
   citations: Citation[];
   disclaimer: string;
   error?: string;
@@ -23,6 +25,7 @@ export default function Home() {
   const [result, setResult] = useState<AskResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<"all" | "local" | "web">("all");
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -53,6 +56,7 @@ export default function Home() {
       }
 
       setResult(payload);
+      setSourceFilter("all");
     } catch {
       setError("Could not reach the AI service. Please try again.");
       setResult(null);
@@ -60,6 +64,12 @@ export default function Home() {
       setIsLoading(false);
     }
   };
+
+  const filteredCitations = result
+    ? result.citations.filter((citation) =>
+        sourceFilter === "all" ? true : citation.sourceType === sourceFilter,
+      )
+    : [];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -90,7 +100,7 @@ export default function Home() {
           <button
             type="submit"
             disabled={isLoading}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-60 dark:border-zinc-700"
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-200 disabled:opacity-60 dark:border-zinc-700"
           >
             {isLoading ? "Thinking..." : "Ask Civic AI"}
           </button>
@@ -115,6 +125,15 @@ export default function Home() {
                   >
                     {result.retrievalMode === "semantic" ? "Semantic" : "Fallback"}
                   </button>
+                  {result.webSourcesUsed ? (
+                    <button
+                      type="button"
+                      title="Answer includes at least one allowlisted web source citation."
+                      className="ml-2 cursor-help rounded-full border border-zinc-300 px-2 py-0.5 text-[10px] font-semibold tracking-wide dark:border-zinc-700"
+                    >
+                      Web used
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -122,16 +141,53 @@ export default function Home() {
             <p className="text-xs text-zinc-600 dark:text-zinc-400">{result.disclaimer}</p>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold">Sources</h3>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold">Sources</h3>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setSourceFilter("all")}
+                    className="rounded-full border border-zinc-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide dark:border-zinc-700"
+                    aria-pressed={sourceFilter === "all"}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSourceFilter("local")}
+                    className="rounded-full border border-zinc-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide dark:border-zinc-700"
+                    aria-pressed={sourceFilter === "local"}
+                  >
+                    Local
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSourceFilter("web")}
+                    className="rounded-full border border-zinc-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide dark:border-zinc-700"
+                    aria-pressed={sourceFilter === "web"}
+                  >
+                    Web
+                  </button>
+                </div>
+              </div>
               {result.citations.length === 0 ? (
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   No matching citations found in the local dataset.
                 </p>
+              ) : filteredCitations.length === 0 ? (
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  No citations match this filter.
+                </p>
               ) : (
                 <ul className="space-y-2">
-                  {result.citations.map((citation) => (
+                  {filteredCitations.map((citation) => (
                     <li key={`${citation.sourceTitle}-${citation.section}`} className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
-                      <p className="text-sm font-medium">{citation.section}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium">{citation.section}</p>
+                        <span className="rounded-full border border-zinc-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide dark:border-zinc-700">
+                          {citation.sourceType === "web" ? "Web" : "Local"}
+                        </span>
+                      </div>
                       <a
                         href={citation.sourceUrl}
                         target="_blank"
